@@ -1,11 +1,12 @@
 import os
-
 import google_auth_oauthlib.flow
 import googleapiclient.discovery
 import googleapiclient.errors
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from tabulate import tabulate
+from duration_helper import parse_duration
+from datetime import timedelta
 
 
 
@@ -46,7 +47,7 @@ def get_video_list(youtube, playlist_url):
     request = youtube.playlistItems().list(
         part="snippet,contentDetails",
         maxResults=100,
-        playlistId=playlist_url
+        playlistId=playlist_url,
     )
     response = request.execute()
 
@@ -71,7 +72,7 @@ def main():
     # TODO: move to config file?
     client_secrets_file = "yt_secret.json"
     token_file = "token.json"
-    play_list_id = "PLypkurRr2080AquOd7AO3fhdJXuiGZ8Of"
+    play_list_id = "PLypkurRr2083IrhT5fY7fFXstnx3fgfD6"
     #--------------------------------------------------#
     
     credentials = get_credentials(client_secrets_file, token_file)
@@ -80,13 +81,17 @@ def main():
     videos = get_videos(youtube, video_ids)
     
     table = []
+    total_time = timedelta()
     for video in videos:
         title = video["snippet"]["title"]
-        duration = video["contentDetails"]["duration"]
+        duration = parse_duration(video["contentDetails"]["duration"][2:])
         table.append([title,duration])
+        total_time += duration
         
     print("")
     print(tabulate(table, headers=["Title","Duration"], tablefmt="github"))
+    print("")
+    print(f"Total time: {total_time}")
     print("")
     
 
