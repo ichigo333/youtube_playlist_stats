@@ -7,27 +7,39 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from tabulate import tabulate
 
-scopes = ["https://www.googleapis.com/auth/youtube.readonly"]
+
 
 ### https://developers.google.com/youtube/v3/quickstart/python
 
-def get_youtube_object():
+def get_youtube_object(credentials):
     # Disable OAuthlib's HTTPS verification when running locally.
     # *DO NOT* leave this option enabled in production.
     #os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
-
+    
     api_service_name = "youtube"
     api_version = "v3"
-    client_secrets_file = "yt_secret.json"
+           
+    youtube = googleapiclient.discovery.build(api_service_name, api_version, credentials=credentials)
+    return youtube
+
+
+def get_credentials(client_secrets_file, token_file):
+    scopes = ["https://www.googleapis.com/auth/youtube.readonly"]
+    credentials = None
 
     # Get credentials and create an API client
-    
-    flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
-        client_secrets_file, scopes)
-    credentials = flow.run_local_server(port=0)
-    youtube = googleapiclient.discovery.build(
-        api_service_name, api_version, credentials=credentials)
-    return youtube
+    if os.path.exists(token_file):
+        credentials = Credentials.from_authorized_user_file(token_file, scopes)
+    if not credentials or not credentials.valid:
+        if credentials and credentials.expired and credentials.refresh_token:
+            credentials.refresh(Request())
+        else:
+            flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(client_secrets_file, scopes)
+            credentials = flow.run_local_server(port=0)
+        
+        with open(token_file, "w") as token:
+            token.write(credentials.to_json())
+    return credentials
 
 
 def get_video_list(youtube, playlist_url):
@@ -38,7 +50,6 @@ def get_video_list(youtube, playlist_url):
     )
     response = request.execute()
 
-    
     video_ids = ""
     for item in response["items"]:
         video_ids += f"{item["contentDetails"]["videoId"]},"
@@ -57,18 +68,25 @@ def get_videos(youtube, video_ids):
 
 
 def main():
-    youtube = get_youtube_object()
-    video_ids = get_video_list(youtube, "PLypkurRr2080AquOd7AO3fhdJXuiGZ8Of")
+    # TODO: move to config file?
+    client_secrets_file = "yt_secret.json"
+    token_file = "token.json"
+    play_list_id = "PLypkurRr2080AquOd7AO3fhdJXuiGZ8Of"
+    #--------------------------------------------------#
+    
+    credentials = get_credentials(client_secrets_file, token_file)
+    youtube = get_youtube_object(credentials)
+    video_ids = get_video_list(youtube, play_list_id)
     videos = get_videos(youtube, video_ids)
     
     table = []
     for video in videos:
-        #video["snippet"]["title"]
-        #video["contentDetails"]["duration"]
-        table.append([video["snippet"]["title"],video["contentDetails"]["duration"]])
+        title = video["snippet"]["title"]
+        duration = video["contentDetails"]["duration"]
+        table.append([title,duration])
         
     print("")
-    print(tabulate(table, headers=["Title","Duration"], tablefmt="grid"))
+    print(tabulate(table, headers=["Title","Duration"], tablefmt="github"))
     print("")
     
 
