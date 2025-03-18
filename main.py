@@ -53,7 +53,9 @@ def get_video_list(youtube, playlist_url):
 
     video_ids = ""
     for item in response["items"]:
-        video_ids += f"{item["contentDetails"]["videoId"]},"
+        
+        id = item["contentDetails"]["videoId"]
+        video_ids += f"{id},"
     return video_ids
 
 
