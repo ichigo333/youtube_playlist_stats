@@ -1,0 +1,5 @@
+{
+    "client_secrets_file_name" : "yt_secret.json",
+    "token_file_name" : "token.json",
+    "playlist_id" : ""
+}

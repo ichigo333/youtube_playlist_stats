@@ -1,20 +1,18 @@
 from tabulate import tabulate
+from config import Config
 from duration_helper import parse_duration
 from datetime import timedelta
 from youtube_api import YoutubeApi
 
 
-### https://developers.google.com/youtube/v3/quickstart/python
-
 def main():
-    # TODO: move to config file?
-    client_secrets_file = "yt_secret.json"
-    token_file = "token.json"
-    play_list_id = "PLypkurRr2083IrhT5fY7fFXstnx3fgfD6"
-    #--------------------------------------------------#
+    config = Config("config.json")
+    playlist_id = config.playlist_id
+    if not playlist_id:
+        playlist_id = input("Enter playlist id: ")
     
-    api = YoutubeApi(client_secrets_file, token_file)
-    video_ids = api.get_video_list(play_list_id)
+    api = YoutubeApi(config.client_secrets_file_name, config.token_file_name)
+    video_ids = api.get_video_list(playlist_id)
     videos = api.get_videos(video_ids)
     
     table = []
